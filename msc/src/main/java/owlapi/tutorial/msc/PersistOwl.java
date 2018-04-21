@@ -43,10 +43,6 @@ public class PersistOwl {
 		}
 	}
 	
-
-
-
-	
 	@SuppressWarnings("deprecation")
 	private static void importOntology(OWLOntology ontology) throws Exception {
 		System.out.println(ontology);
