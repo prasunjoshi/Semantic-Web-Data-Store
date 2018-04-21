@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import org.neo4j.graphdb.index.UniqueFactory;
+import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -29,7 +30,7 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 public class PersistOwl {
 	public static void main(String[] args) {
 		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
-		File file = new File("/home/aditi/Protege_4.0.2/first.owl");
+		File file = new File("/home/unknown/Desktop/DMPROject/Semantic-Web-Data-Store/OWL_Files/owlfile.owl");
 		OWLOntology o;
 
 		try {
@@ -47,6 +48,7 @@ public class PersistOwl {
 	
 	@SuppressWarnings("deprecation")
 	private static void importOntology(OWLOntology ontology) throws Exception {
+		
 		System.out.println(ontology);
 		OWLReasonerFactory factory = new ReasonerFactory();
 		OWLReasoner reasoner = factory.createReasoner(ontology);
@@ -54,7 +56,7 @@ public class PersistOwl {
 			throw new Exception("Ontology is inconsistent");
 		}
 		GraphDatabaseService graphDb;
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("/home/aditi/Desktop/Neo4jDB/data/databases/graph.db"));
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("/home/unknown/Desktop/n4jdb/databases/graph.db"));
 		org.neo4j.graphdb.Transaction tx = graphDb.beginTx();
 		try
 		{
@@ -62,13 +64,9 @@ public class PersistOwl {
 			//start with the thing class
 			Node thingNode =  getOrCreateNodeWithUniqueFactory(graphDb,"owl:Thing");
 			
-			for (OWLClass c :ontology.getClassesInSignature(true)) {
+			for ( OWLClass c : ontology.getClassesInSignature(true) ) {//loop through all classes
 				String classString = c.toString();
-				if (classString.contains("#")) {
-					classString = classString.substring(classString.indexOf("#")+1,classString.lastIndexOf(">"));
-				}
-				classString = classString.trim();//remove extra spaces
-				Node classNode = getOrCreateNodeWithUniqueFactory(graphDb,classString);//create node
+				Node classNode = getGraphNode( graphDb, classString, "Class" );//create node
 				getAndCreateParents( graphDb, thingNode, classNode, c, reasoner );//populate Parents
 				getAndCreateEquivalentClasses( graphDb, thingNode, classNode, c, reasoner );// find and create equivilent classes
 				getAndCreateDisjointClasses(graphDb,thingNode,classNode,c,reasoner); //find and create disjoint classes
@@ -92,13 +90,12 @@ public class PersistOwl {
 			classNode.createRelationshipTo(thingNode,DynamicRelationshipType.withName("SubClassOf"));
 		} else {
 			for (org.semanticweb.owlapi.reasoner.Node<OWLClass> parentOWLNode: superclasses) {
+				
 				OWLClassExpression parent = parentOWLNode.getRepresentativeElement();
 				String parentString = parent.toString();
-				if (parentString.contains("#")) {
-					parentString = parentString.substring(parentString.indexOf("#")+1,parentString.lastIndexOf(">"));
-				}
-				Node parentNode = getOrCreateNodeWithUniqueFactory(graphDb,parentString);
+				Node parentNode = getGraphNode( graphDb, parentString, "Class" );
 				classNode.createRelationshipTo(parentNode,DynamicRelationshipType.withName("SubClassOf"));
+				
 			}
 		}
 		
@@ -114,12 +111,9 @@ public class PersistOwl {
 		} else {
 			for ( OWLClass cl : equivalentclasses) {
 				if( !c.toString().equals(cl.toString()) ) {//if class is not itself
-					//System.out.println( "hehe-->" +  cl.toString() );
+					
 					String parentString = cl.toString();
-					if (parentString.contains("#")) {
-						parentString = parentString.substring( parentString.indexOf("#") + 1, parentString.lastIndexOf(">") );
-					}
-					Node parentNode = getOrCreateNodeWithUniqueFactory( graphDb, parentString );
+					Node parentNode = getGraphNode( graphDb, parentString, "Class" );
 					classNode.createRelationshipTo(parentNode,DynamicRelationshipType.withName("EquivalentTo"));// cl--EquivalentTo-->c						
 				}
 			}
@@ -132,10 +126,7 @@ public class PersistOwl {
 		Set<OWLClass> disjointList = reasoner.getDisjointClasses(c).getFlattened();
 		for(OWLClass disjcl: disjointList){
 			String disjointClassString = disjcl.toString();
-			if (disjointClassString.contains("#")) {
-				disjointClassString = disjointClassString.substring( disjointClassString.indexOf("#") + 1, disjointClassString.lastIndexOf(">") );
-			}
-			Node disjointNode = getOrCreateNodeWithUniqueFactory(graphDb, disjointClassString);
+			Node disjointNode = getGraphNode( graphDb, disjointClassString, "Class" );
 			classNode.createRelationshipTo(disjointNode,DynamicRelationshipType.withName("DisjointWith")); //disjcl--DisjointWith-->c
 		}
 
@@ -165,16 +156,15 @@ public class PersistOwl {
 		NodeSet<OWLNamedIndividual> instances = reasoner.getInstances(c);//getSuperClasses
 		if ( instances.isEmpty() ) {
 		} else {
-			for (org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> in : reasoner.getInstances(c, true)) {
+			for ( org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> in : reasoner.getInstances(c, true) ) {
+				
 				OWLNamedIndividual i = in.getRepresentativeElement();
 				String indString = i.toString();
-				if (indString.contains("#")) {
-					indString = indString.substring(indString.indexOf("#")+1,indString.lastIndexOf(">"));
-				}
-				Node individualNode = getOrCreateNodeWithUniqueFactory(graphDb,indString);
+				Node individualNode = getGraphNode( graphDb,indString, "Individual" );
 				individualNode.createRelationshipTo(classNode,DynamicRelationshipType.withName("instanceOf"));
 				getAndCreateDataProperties(graphDb,ontology,thingNode, classNode, c, i, individualNode, reasoner);
 				getAndCreateObjectProperties(graphDb,ontology,thingNode,classNode,c,i,individualNode,reasoner);
+				
 			}
 		}
 	}	
@@ -184,22 +174,29 @@ public class PersistOwl {
 	private static void getAndCreateObjectProperties(GraphDatabaseService graphDb, OWLOntology ontology, Node thingNode,Node classNode, OWLClass c, OWLNamedIndividual i, Node individualNode, OWLReasoner reasoner) {
 		for (OWLObjectPropertyExpression objectProperty:ontology.getObjectPropertiesInSignature()) {
 			for(org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> object: reasoner.getObjectPropertyValues(i,objectProperty)) {
+			
 				String indString = i.toString();
-				indString = indString.substring(indString.indexOf("#")+1,indString.lastIndexOf(">"));
+				if( indString.contains("#") )
+					indString = indString.substring(indString.indexOf("#") + 1, indString.lastIndexOf(">") );
+				
 				String reltype = objectProperty.toString();
-				reltype = reltype.substring(reltype.indexOf("#")+1,reltype.lastIndexOf(">"));
-				String s =object.getRepresentativeElement().toString();
-				s = s.substring(s.indexOf("#")+1,s.lastIndexOf(">"));
-				Node objectNode = getOrCreateNodeWithUniqueFactory(graphDb,s);
-				individualNode.createRelationshipTo(objectNode,DynamicRelationshipType.withName(reltype));
+				if( reltype.contains("#") )
+					reltype = reltype.substring(reltype.indexOf("#")+1,reltype.lastIndexOf(">"));//?
+				
+				String s = object.getRepresentativeElement().toString();
+				Node objectNode = getGraphNode( graphDb , s, "Individual" );
+				individualNode.createRelationshipTo( objectNode, DynamicRelationshipType.withName(reltype) );
+				
 			}
+			getAndLinkObjectPropertyDomains( graphDb, ontology, thingNode, classNode, c, objectProperty, reasoner );			
+			
 		}	
 	}
 
 	//get Data Properties of Individuals
 	@SuppressWarnings("deprecation")
 	private static void getAndCreateDataProperties(GraphDatabaseService graphDb, OWLOntology ontology, Node thingNode,	Node classNode, OWLClass c, OWLNamedIndividual i, Node individualNode, OWLReasoner reasoner) {
-		for (OWLDataPropertyExpression dataProperty:ontology.getDataPropertiesInSignature()) {
+		for ( OWLDataPropertyExpression dataProperty:ontology.getDataPropertiesInSignature() ) {
 			for (OWLLiteral object: reasoner.getDataPropertyValues(i, dataProperty.asOWLDataProperty())) {
 				String reltype = dataProperty.asOWLDataProperty().toString();
 				reltype = reltype.substring(reltype.indexOf("#")+1, reltype.lastIndexOf(">"));
@@ -211,6 +208,41 @@ public class PersistOwl {
 			}
 		}
 	
+	}
+	
+	//this method is called from getAndCreateObjectProperties, links object to its domains
+	@SuppressWarnings("deprecation")
+	private static void getAndLinkObjectPropertyDomains( GraphDatabaseService graphDb, OWLOntology ontology, Node thingNode, Node classNode, OWLClass c, OWLObjectPropertyExpression op, OWLReasoner reasoner) {
+		
+		NodeSet<OWLClass> domains = reasoner.getObjectPropertyDomains( op );
+		
+		String objectString = op.toString();
+		Node objectNode = getGraphNode( graphDb, objectString, "ObjectProperty" );//get Node
+
+		for (  OWLClass domain : domains.getFlattened() ) {
+
+		    String domString = domain.toString();
+			Node domNode = getGraphNode( graphDb, domString, "Domain" );
+			objectNode.createRelationshipTo( domNode, DynamicRelationshipType.withName( "hasDomain" ) );
+			objectNode.createRelationshipTo( domNode, DynamicRelationshipType.withName( "isDomainOf" ) );				
+			
+		}	
+		
+	}	
+	
+	//creates and return graph node
+	public static Node getGraphNode( GraphDatabaseService graphDb, String str, String label ){
+		str = str.trim();
+		int startIndex = str.indexOf("#");
+		int endIndex = str.indexOf(">");
+		if( ( startIndex != -1 ) && ( endIndex != -1 ) )
+			str = str.substring( startIndex + 1, endIndex );
+		
+		Node objectNode = getOrCreateNodeWithUniqueFactory( graphDb, str );//get Node
+		org.neo4j.graphdb.Label objLabel = DynamicLabel.label( label );	//create Label	
+		objectNode.addLabel( objLabel );//add label to node
+		
+		return objectNode;
 	}
 	
 	//lib fcn dont update it
