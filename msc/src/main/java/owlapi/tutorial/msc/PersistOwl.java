@@ -2,7 +2,6 @@ package owlapi.tutorial.msc;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Stream;
-
 import org.neo4j.graphdb.index.UniqueFactory;
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
@@ -27,10 +26,10 @@ import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerConfiguration;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
-public class PersistOwl {
+public class PersistOwl1 {
 	public static void main(String[] args) {
 		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
-		File file = new File("/home/unknown/Desktop/DMPROject/Semantic-Web-Data-Store/OWL_Files/owlfile.owl");
+		File file = new File("/home/aditi/Protege_4.0.2/first.owl");
 		OWLOntology o;
 
 		try {
@@ -56,7 +55,7 @@ public class PersistOwl {
 			throw new Exception("Ontology is inconsistent");
 		}
 		GraphDatabaseService graphDb;
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("/home/unknown/Desktop/n4jdb/databases/graph.db"));
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("/home/aditi/Desktop/Neo4jDB/data/databases/graph.db"));
 		org.neo4j.graphdb.Transaction tx = graphDb.beginTx();
 		try
 		{
@@ -121,6 +120,7 @@ public class PersistOwl {
 		//System.out.println("creating equivalentTo relationship done ");
 	}	
 	
+	//get distinct classes and join them using disjointWith Relationship
 	@SuppressWarnings("deprecation")
 	private static void getAndCreateDisjointClasses(GraphDatabaseService graphDb, Node thingNode, Node classNode, OWLClass c, OWLReasoner reasoner) {
 		Set<OWLClass> disjointList = reasoner.getDisjointClasses(c).getFlattened();
@@ -152,19 +152,41 @@ public class PersistOwl {
 	//get individuals and attach them with individualOf Relationship
 	@SuppressWarnings("deprecation")
 	private static void populateIndividualsOfClass( GraphDatabaseService graphDb, OWLOntology ontology,Node thingNode, Node classNode, OWLClass c, OWLReasoner reasoner ){
-
 		NodeSet<OWLNamedIndividual> instances = reasoner.getInstances(c);//getSuperClasses
 		if ( instances.isEmpty() ) {
 		} else {
+			
 			for ( org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> in : reasoner.getInstances(c, true) ) {
-				
+				//get Individual of a class
 				OWLNamedIndividual i = in.getRepresentativeElement();
 				String indString = i.toString();
 				Node individualNode = getGraphNode( graphDb,indString, "Individual" );
 				individualNode.createRelationshipTo(classNode,DynamicRelationshipType.withName("instanceOf"));
-				getAndCreateDataProperties(graphDb,ontology,thingNode, classNode, c, i, individualNode, reasoner);
-				getAndCreateObjectProperties(graphDb,ontology,thingNode,classNode,c,i,individualNode,reasoner);
 				
+				//get Distinct Individuals for an individual
+				for( org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> distinctIndividuals : reasoner.getDifferentIndividuals(i)) {
+					OWLNamedIndividual distinctIndividual = distinctIndividuals.getRepresentativeElement();
+					String disIndString = distinctIndividual.toString();
+					Node distinctIndividualNode = getGraphNode(graphDb, disIndString,"Individual");
+					distinctIndividualNode.createRelationshipTo(individualNode,DynamicRelationshipType.withName("distinctIndividual"));
+					//System.out.println(indString+" different individual  "+disIndString);
+				}
+				
+				//get Same Individuals for an individual
+				for(OWLNamedIndividual sameIndividual : reasoner.getSameIndividuals(i)) {
+					String sameIndividualString = sameIndividual.toString();
+					if(!sameIndividualString.equals(indString)) {
+						Node sameIndividualNode = getGraphNode(graphDb, sameIndividualString,"Individual");
+						sameIndividualNode.createRelationshipTo(individualNode,DynamicRelationshipType.withName("sameIndividual"));
+						//System.out.println(indString+" same individual as "+sameIndividualString);
+					}
+				}
+				
+				//call to get and create data properties for an individual
+				getAndCreateDataProperties(graphDb,ontology,thingNode, classNode, c, i, individualNode, reasoner);
+				
+				//call to get and create object properties for an individual
+				getAndCreateObjectProperties(graphDb,ontology,thingNode,classNode,c,i,individualNode,reasoner);	
 			}
 		}
 	}	
@@ -256,3 +278,4 @@ public class PersistOwl {
 		return factory.getOrCreate("name", nodeName);
 	}	
 }
+
