@@ -1,7 +1,6 @@
 package owlapi.tutorial.msc;
 import java.io.File;
 import java.util.*;
-import java.util.stream.Stream;
 import org.neo4j.graphdb.index.UniqueFactory;
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
@@ -13,7 +12,6 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLDataPropertyExpression;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -23,24 +21,18 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
-import org.semanticweb.owlapi.reasoner.OWLReasonerConfiguration;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 public class PersistOwl1 {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
 		File file = new File("/home/aditi/Protege_4.0.2/first.owl");
 		OWLOntology o;
-
 		try {
 			o = man.loadOntologyFromOntologyDocument(file);
-			//System.out.println(o);
-			try {
-				importOntology(o);
-			} catch (Exception e) {
-				e.printStackTrace();
+			importOntology(o);
 			}
-		} catch (OWLOntologyCreationException e) {
+		 catch (OWLOntologyCreationException e) {
 			e.printStackTrace();
 		}
 	}
@@ -86,7 +78,7 @@ public class PersistOwl1 {
 		
 		NodeSet<OWLClass> superclasses = reasoner.getSuperClasses(c, true);//getSuperClasses
 		if (superclasses.isEmpty()) {
-			classNode.createRelationshipTo(thingNode,DynamicRelationshipType.withName("SubClassOf"));
+		//classNode.createRelationshipTo(thingNode,DynamicRelationshipType.withName("SubClassOf"));
 		} else {
 			for (org.semanticweb.owlapi.reasoner.Node<OWLClass> parentOWLNode: superclasses) {
 				
@@ -196,7 +188,6 @@ public class PersistOwl1 {
 	private static void getAndCreateObjectProperties(GraphDatabaseService graphDb, OWLOntology ontology, Node thingNode,Node classNode, OWLClass c, OWLNamedIndividual i, Node individualNode, OWLReasoner reasoner) {
 		for (OWLObjectPropertyExpression objectProperty:ontology.getObjectPropertiesInSignature()) {
 			for(org.semanticweb.owlapi.reasoner.Node<OWLNamedIndividual> object: reasoner.getObjectPropertyValues(i,objectProperty)) {
-			
 				String indString = i.toString();
 				if( indString.contains("#") )
 					indString = indString.substring(indString.indexOf("#") + 1, indString.lastIndexOf(">") );
@@ -210,8 +201,8 @@ public class PersistOwl1 {
 				individualNode.createRelationshipTo( objectNode, DynamicRelationshipType.withName(reltype) );
 				
 			}
-			getAndLinkObjectPropertyDomains( graphDb, ontology, thingNode, classNode, c, objectProperty, reasoner );			
-			
+			getAndLinkObjectPropertyDomains( graphDb, ontology, thingNode, classNode, c, objectProperty, reasoner);
+			getAndLinkObjectPropertyRanges(graphDb,ontology,thingNode,classNode,c,objectProperty,reasoner);
 		}	
 	}
 
@@ -246,11 +237,28 @@ public class PersistOwl1 {
 		    String domString = domain.toString();
 			Node domNode = getGraphNode( graphDb, domString, "Domain" );
 			objectNode.createRelationshipTo( domNode, DynamicRelationshipType.withName( "hasDomain" ) );
-			objectNode.createRelationshipTo( domNode, DynamicRelationshipType.withName( "isDomainOf" ) );				
+			domNode.createRelationshipTo( objectNode, DynamicRelationshipType.withName( "isDomainOf" ) );				
 			
 		}	
+	}
+	
+	//this method is called from getAndCreateObjectProperties, links object to its ranges
+	@SuppressWarnings("deprecation")
+	private static void getAndLinkObjectPropertyRanges(GraphDatabaseService graphDb, OWLOntology ontology,Node thingNode, Node classNode, OWLClass c, OWLObjectPropertyExpression objectProperty,OWLReasoner reasoner) {
 		
-	}	
+		NodeSet<OWLClass> ranges = reasoner.getObjectPropertyRanges(objectProperty);
+		
+		String objectString = objectProperty.toString();
+		Node objectNode = getGraphNode( graphDb, objectString, "ObjectProperty" );//get Node
+		
+		for(OWLClass range : ranges.getFlattened()) {
+			
+			String rangeString = range.toString();
+			Node rangeNode = getGraphNode( graphDb, rangeString, "Range" );
+			objectNode.createRelationshipTo(rangeNode, DynamicRelationshipType.withName("hasRange"));
+			rangeNode.createRelationshipTo(objectNode, DynamicRelationshipType.withName("isRangeOf"));
+		}
+	}
 	
 	//creates and return graph node
 	public static Node getGraphNode( GraphDatabaseService graphDb, String str, String label ){
