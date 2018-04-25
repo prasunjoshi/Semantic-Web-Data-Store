@@ -17,6 +17,25 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="/home/prasun/.m2/repository/org/neo4j/driver/neo4j-java-driver/1.0.3/neo4j-java-driver-1.0.3.jar">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="maven.groupId" value="org.neo4j.driver"/>
+			<attribute name="maven.artifactId" value="neo4j-java-driver"/>
+			<attribute name="maven.version" value="1.0.3"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/home/prasun/.m2/repository/org/neo4j/neo4j-jdbc/3.0.3/neo4j-jdbc-3.0.3.jar" sourcepath="/home/prasun/.m2/repository/org/neo4j/neo4j-jdbc/3.0.3/neo4j-jdbc-3.0.3-sources.jar">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="maven.groupId" value="org.neo4j"/>
+			<attribute name="maven.artifactId" value="neo4j-jdbc"/>
+			<attribute name="maven.version" value="3.0.3"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
