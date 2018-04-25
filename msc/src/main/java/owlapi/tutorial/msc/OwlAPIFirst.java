@@ -1,4 +1,3 @@
-
 package owlapi.tutorial.msc;
 import java.io.File;
 import java.util.*;
@@ -26,7 +25,7 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 public class OwlAPIFirst {
 	public static void main(String[] args) {
 		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
-		File file = new File("C:\\pizza.owl.xml");
+		File file = new File("/home/sharad/Desktop/pizza.owl");
 		OWLOntology o;
 
 		try {
@@ -51,7 +50,7 @@ public class OwlAPIFirst {
 			throw new Exception("Ontology is inconsistent");
 		}
 		GraphDatabaseService graphDb;
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("C:\\neo4j\\data\\firstGraph.db"));
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File("/home/sharad/Desktop/n4jdbi/databases/graph.db"));
 		org.neo4j.graphdb.Transaction tx = graphDb.beginTx();
 		try
 		{
@@ -118,6 +117,7 @@ public class OwlAPIFirst {
 		}
 		finally {
 			tx.close();	 
+			System.out.println("success");
 		}
 	}
 	private static Node getOrCreateNodeWithUniqueFactory(GraphDatabaseService graphDb, String nodeName) {

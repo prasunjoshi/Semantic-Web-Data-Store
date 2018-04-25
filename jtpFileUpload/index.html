@@ -1,0 +1,55 @@
+<html>  
+  <head>  
+    <title>Semantic Web Data-Store</title>  
+ <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+ <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>  
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.form/3.51/jquery.form.min.js"></script>  
+<style>
+  .jumbotron {
+      background-color: #f4511e;
+      color: #fff;
+  }
+  .bg-grey {
+      background-color: #fff;
+  }
+  .container-fluid {
+      padding: 60px 50px;
+  }
+.button4 {background-color: #e7e7e7; color: red;} /* Gray */ 
+  </style>
+  <script>  
+  $(document).ready(function() {  
+     $('#uploadForm').submit(function() {  
+         $("#status").empty().text("File is uploading...");  
+  
+        $(this).ajaxSubmit({  
+  
+            error: function(xhr) {  
+                    status('Error: ' + xhr.status);  
+            },  
+  
+            success: function(response) {  
+                    console.log(response)  
+                    $("#status").empty().text(response);  
+            }  
+    });  
+  
+    return false;  
+    });      
+});  
+  </script>  
+  </head>  
+  <body>  
+    <div class="jumbotron text-center">
+      <h1>Semantic Web Data-Store</h1>  
+        <p>Select a file to upload</p> 
+      <form id="uploadForm" enctype="multipart/form-data" action="/uploadjavatpoint" method="post">  
+      <div align="center">  <input type="file" name="myfile" align="center"/><br/><br/>  </div>
+      <div > <button type="submit" name="submit" align="center" class="button .button4">Upload File</button><br/><br/> </div> 
+       <span id="status"></span>  
+      </form> 
+    </div> 
+  </body>  
+</html>  
