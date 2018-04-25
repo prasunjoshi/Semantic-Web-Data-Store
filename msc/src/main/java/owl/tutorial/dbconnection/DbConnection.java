@@ -1,28 +1,14 @@
 package owl.tutorial.dbconnection;
 
+import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.Properties;
 import java.util.Scanner;
 
-import org.neo4j.driver.internal.spi.Connection;
-import org.neo4j.jdbc.PreparedStatement;
-import org.neo4j.jdbc.ResultSet;
-import org.semanticweb.owlapi.io.SystemOutDocumentTarget;
-
-public class DbConnection {
-	public static Connection neoConnection()
-	{
-		// Connecting
-		try (Connection con = (Connection)DriverManager.getConnection("jdbc:neo4j:bolt://localhost:7687", "neo4j", "root")) {
-			return con;
-		    // Querying
-//		    String query = "MATCH (u:User)-[:FRIEND]-(f:User) WHERE u.name = {1} RETURN f.name, f.age";
-		}
-		catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-		return null;
-	}
+public class DbConnection
+{
 	public static void main(String[] args) {
 		Scanner sc = new Scanner(System.in);
 		System.out.println("Enter your query : ");
@@ -30,19 +16,42 @@ public class DbConnection {
 		executeQuery(query);
 
 	}
-	private static void executeQuery(String query) {
-		// TODO Auto-generated method stubs
-		Connection con = DbConnection.neoConnection();
-	    try (PreparedStatement stmt = con.prepareStatement(query)) {
-	    	
-//        stmt.setString(1,"John");
 
-//        try (ResultSet rs = stmt.execute()) {
-//            while (rs.next()) {
-//                System.out.println("Friend: "+rs.getString("f.name")+" is "+rs.getInt("f.age"));
-//            }
-//        }
-    }
+	public static void executeQuery(String query)
+	{
+		Connection connection = null;
+		String neo_usernameString = "neo4j";
+		String neo_passwordString = "sam12345";
+		try
+		{
+			Class.forName("org.neo4j.jdbc.Driver");
+			Properties properties = new Properties();
+			properties.put("user", neo_usernameString);
+			properties.put("password", neo_passwordString);
+			connection = DriverManager.getConnection("jdbc:neo4j:http://localhost:7474/", properties);
+
+			java.sql.PreparedStatement ps = connection.prepareStatement(query);
+			java.sql.ResultSet rs = ps.executeQuery();
+			ResultSetMetaData rsm = rs.getMetaData();
+			int clm = rsm.getColumnCount();
+			while(rs.next())
+			{
+				for(int i=1;i<=clm;i++){
+					System.out.println(rs.getString(i)+" ");
+				}
+			}
+		} catch (ClassNotFoundException e)
+		{
+			System.out.println("org.neo4j.jdbc.Driver not found");
+			System.exit(1);
+		} catch (SQLException e)
+		{
+			System.out.println("Cannot connect to Neo4j" + e.getMessage());
+			System.exit(1);
+		}
 		
+		System.out.println("Connection successfully established.");
+
 	}
+
 }
